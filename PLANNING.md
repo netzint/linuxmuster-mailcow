@@ -1,7 +1,7 @@
 # How the sync will work
 - Script talks to AD via ldap and to Mailcow via http
 
-## Syncing
+## Syncing Workflow
 - Use one query to get all users of all schools -> ad.users
 ```
 (|(sophomorixRole=student)(sophomorixRole=teacher))

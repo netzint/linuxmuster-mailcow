@@ -34,20 +34,13 @@ class MailcowHelper:
         self._post_request('api/v1/edit/mailbox', json_data)
 
     def check_user(self, email):
-        url = f"{self._host}/api/v1/get/mailbox/{email}"
-        headers = {'X-API-Key': self._apiKey, 'Content-type': 'application/json'}
-        req = requests.get(url, headers=headers)
-        rsp = req.json()
-        req.close()
-        
-        if not isinstance(rsp, dict):
-            sys.exit("API get/mailbox: got response of a wrong type")
+        rsp = self._getRequest(f"/api/v1/get/mailbox/{email}")
 
         if (not rsp):
             return (False, False, None)
 
         if 'active_int' not in rsp and rsp['type'] == 'error':
-            sys.exit(f"API {url}: {rsp['type']} - {rsp['msg']}")
+            sys.exit(f"API: {rsp['type']} - {rsp['msg']}")
         
         return (True, bool(rsp['active_int']), rsp['name'])
 
@@ -67,6 +60,19 @@ class MailcowHelper:
         
         if rsp['type'] != 'success':
             sys.exit(f"API {url}: {rsp['type']} - {rsp['msg']}")
+
+    def _getRequest(self, url):
+        requestUrl = f"{self._host}/{url}"
+
+        headers = {'X-API-Key': self._apiKey, 'Content-type': 'application/json'}
+        req = requests.get(requestUrl, headers=headers)
+        rsp = req.json()
+        req.close()
+        
+        if not isinstance(rsp, dict) or isinstance(rsp, list):
+            sys.exit(f"API {url}: got response of a wrong type")
+
+        return rsp
 
 
     def _delete_user(self, email):

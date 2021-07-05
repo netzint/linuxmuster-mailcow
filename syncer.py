@@ -12,8 +12,16 @@ class LinuxmusterMailcowSyncer:
 
         templateHelper.applyAllTemplates(self._config)
 
-        self._mailcow = MailcowHelper(self._config['API_HOST'], self._config['API_KEY'])
-        self._ldap = LdapHelper(self._config['LDAP_URI'], self._config['LDAP_BIND_DN'], self._config['LDAP_BIND_DN_PASSWORD'], self._config['LDAP_BASE_DN'])
+        self._mailcow = MailcowHelper(
+            self._config['API_HOST'],
+            self._config['API_KEY']
+            )
+        self._ldap = LdapHelper(
+            self._config['LDAP_URI'], 
+            self._config['LDAP_BIND_DN'], 
+            self._config['LDAP_BIND_DN_PASSWORD'], 
+            self._config['LDAP_BASE_DN']
+            )
 
     def sync(self):
         while (True):
@@ -22,37 +30,32 @@ class LinuxmusterMailcowSyncer:
             logging.info(f"Sync finished, sleeping {interval} seconds before next cycle")
             time.sleep(interval)
 
-    def _readConfig(self):
-        required_config_keys = [
-            'LDAP_MAILCOW_LDAP_URI', 
-            'LDAP_MAILCOW_LDAP_BASE_DN',
-            'LDAP_MAILCOW_LDAP_BIND_DN', 
-            'LDAP_MAILCOW_LDAP_BIND_DN_PASSWORD',
-            'LDAP_MAILCOW_API_HOST', 
-            'LDAP_MAILCOW_API_KEY', 
-            'LDAP_MAILCOW_SYNC_INTERVAL'
-        ]
-
-        config = {}
-
-        for config_key in required_config_keys:
-            if config_key not in os.environ:
-                sys.exit (f"Required environment value {config_key} is not set")
-
-            config[config_key.replace('LDAP_MAILCOW_', '')] = os.environ[config_key]
-
-        if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_SOGO_LDAP_FILTER' not in os.environ:
-            sys.exit('LDAP_MAILCOW_SOGO_LDAP_FILTER is required when you specify LDAP_MAILCOW_LDAP_FILTER')
-
-        if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_LDAP_FILTER' not in os.environ:
-            sys.exit('LDAP_MAILCOW_LDAP_FILTER is required when you specify LDAP_MAILCOW_SOGO_LDAP_FILTER')
-
-        config['LDAP_FILTER'] = os.environ['LDAP_MAILCOW_LDAP_FILTER'] if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ else '(&(objectClass=user)(objectCategory=person))'
-        config['SOGO_LDAP_FILTER'] = os.environ['LDAP_MAILCOW_SOGO_LDAP_FILTER'] if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ else "objectClass='user' AND objectCategory='person'"
-
-        return config
-
     def _sync(self):
+
+        ret, adUsers = self._ldap.search(
+            "(|(sophomorixRole=student)(sophomorixRole=teacher))",
+            ["mail", "proxyAddresses", "sophomorixStatus"]
+        )
+
+        if not ret:
+            return False
+
+        ret, adLists = self._ldap.search(
+            "(|(sophomorixType=adminclass)(sophomorixType=project))",
+            ["mail"]
+        )
+
+        if not ret:
+            return False
+
+        
+
+        print("AdUsers: ", adUsers)
+        print("AdLists: ", adLists)
+
+        return
+
+
         ret, ldap_results = self._ldap.search( 
                     self._config['LDAP_FILTER'],
                     ['userPrincipalName', 'cn', 'userAccountControl']
@@ -87,6 +90,35 @@ class LinuxmusterMailcowSyncer:
             if unchanged:
                 logging.info (f"Checked user {email}, unchanged")
 
+    def _readConfig(self):
+        required_config_keys = [
+            'LDAP_MAILCOW_LDAP_URI', 
+            'LDAP_MAILCOW_LDAP_BASE_DN',
+            'LDAP_MAILCOW_LDAP_BIND_DN', 
+            'LDAP_MAILCOW_LDAP_BIND_DN_PASSWORD',
+            'LDAP_MAILCOW_API_HOST', 
+            'LDAP_MAILCOW_API_KEY', 
+            'LDAP_MAILCOW_SYNC_INTERVAL'
+        ]
+
+        config = {}
+
+        for config_key in required_config_keys:
+            if config_key not in os.environ:
+                sys.exit (f"Required environment value {config_key} is not set")
+
+            config[config_key.replace('LDAP_MAILCOW_', '')] = os.environ[config_key]
+
+        if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_SOGO_LDAP_FILTER' not in os.environ:
+            sys.exit('LDAP_MAILCOW_SOGO_LDAP_FILTER is required when you specify LDAP_MAILCOW_LDAP_FILTER')
+
+        if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_LDAP_FILTER' not in os.environ:
+            sys.exit('LDAP_MAILCOW_LDAP_FILTER is required when you specify LDAP_MAILCOW_SOGO_LDAP_FILTER')
+
+        config['LDAP_FILTER'] = os.environ['LDAP_MAILCOW_LDAP_FILTER'] if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ else '(&(objectClass=user)(objectCategory=person))'
+        config['SOGO_LDAP_FILTER'] = os.environ['LDAP_MAILCOW_SOGO_LDAP_FILTER'] if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ else "objectClass='user' AND objectCategory='person'"
+
+        return config
 
 if __name__ == '__main__':
     syncer = LinuxmusterMailcowSyncer()
