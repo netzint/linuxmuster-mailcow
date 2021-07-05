@@ -1,0 +1,13 @@
+#!/bin/bash
+
+export LDAP_MAILCOW_LDAP_URI="ldap://10.9.0.1"
+export LDAP_MAILCOW_LDAP_BASE_DN=DC=linuxmuster,DC=lan
+export LDAP_MAILCOW_LDAP_BIND_DN=CN=global-binduser,OU=Management,OU=GLOBAL,DC=linuxmuster,DC=lan
+export LDAP_MAILCOW_LDAP_BIND_DN_PASSWORD=SomeSuperSafePassword
+export LDAP_MAILCOW_API_HOST=http://10.9.0.2
+export LDAP_MAILCOW_API_KEY=SomeApiKey
+export LDAP_MAILCOW_SYNC_INTERVAL=300
+export LDAP_MAILCOW_LDAP_FILTER="(&(objectClass=person)(userPrincipalName=*))"
+export LDAP_MAILCOW_SOGO_LDAP_FILTER="objectClass='person'"
+
+python3 syncer.py
