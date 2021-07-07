@@ -3,37 +3,37 @@
     <key>type</key>
     <string>ldap</string>
     <key>id</key>
-    <string>$${line}_ldap</string>
+    <string>${line}_ldap</string>
 
     <key>CNFieldName</key>
-    <string>cn</string>
+    <string>displayName</string>
     <key>IDFieldName</key>
-    <string>cn</string>
+    <string>sAMAccountName</string>
     <key>UIDFieldName</key>
-    <string>userPrincipalName</string>
+    <string>sAMAccountName</string>
 
     <key>baseDN</key>
-    <string>$ldap_base_dn</string>
+    <string>@@ldapBaseDn@@</string>
 
     <key>bindDN</key>
-    <string>$ldap_bind_dn</string>
+    <string>@@ldapBindDn@@</string>
     <key>bindPassword</key>
-    <string>$ldap_bind_dn_password</string>
+    <string>@@ldapBindPassword@@</string>
     <key>bindFields</key>
     <array>
-        <string>userPrincipalName</string>
+        <string>sAMAccountName</string>
     </array>
 
     <key>bindAsCurrentUser</key>
     <string>YES</string>
 
     <key>hostname</key>
-    <string>$ldap_uri</string>
+    <string>@@ldapUri@@</string>
     <key>canAuthenticate</key>
     <string>YES</string>
 
     <key>filter</key>
-    <string>$sogo_ldap_filter</string>
+    <string>@@ldapSogoUserFilter@@</string>
 
     <key>isAddressBook</key>
     <string>NO</string>

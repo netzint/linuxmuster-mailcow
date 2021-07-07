@@ -1,25 +1,11 @@
 import random, string, sys
-import requests
+import requests, urllib3
 
 class MailcowHelper:
     def __init__(self, host, apiKey):
         self._host = host
         self._apiKey = apiKey
-
-    def edit_user(self, email, active=None, name=None):
-        attr = {}
-        if (active is not None):
-            attr['active'] = 1 if active else 0
-        if (name is not None):
-            attr['name'] = name
-
-        json_data = {
-            'items': [email],
-            'attr': attr
-        }
-
-        self._post_request('api/v1/edit/mailbox', json_data)
-
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def addElementsOfType(self, type, elements):
         for element in elements:
@@ -43,7 +29,7 @@ class MailcowHelper:
 
         print("Sending POST with JSON: ", json_data)
 
-        req = requests.post(api_url, headers=headers, json=json_data)
+        req = requests.post(api_url, headers=headers, json=json_data, verify=False)
         rsp = req.json()
         req.close()
 
@@ -60,7 +46,7 @@ class MailcowHelper:
         requestUrl = f"{self._host}/{url}"
 
         headers = {'X-API-Key': self._apiKey, 'Content-type': 'application/json'}
-        req = requests.get(requestUrl, headers=headers)
+        req = requests.get(requestUrl, headers=headers, verify=False)
         rsp = req.json()
         req.close()
         
@@ -68,9 +54,3 @@ class MailcowHelper:
             sys.exit(f"API {url}: got response of a wrong type")
 
         return rsp
-
-
-    def _delete_user(self, email):
-        json_data = [email]
-
-        self._post_request('api/v1/delete/mailbox', json_data)

@@ -4,20 +4,20 @@ import templateHelper
 from mailcowHelper import MailcowHelper
 from ldapHelper import LdapHelper
 from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage
+from dockerapiHelper import DockerapiHelper
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%d.%m.%y %H:%M:%S', level=logging.INFO)
 
 class LinuxmusterMailcowSyncer:
 
-    mailboxUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher))"
-    mailingListFilter = "(|(sophomorixType=adminclass)(sophomorixType=project))"
-    mailingListMemberFilter = f"(&(memberof:1.2.840.113556.1.4.1941:=@@mailingListDn@@){mailboxUserFilter})"
+    ldapSogoUserFilter = "sophomorixRole='student' OR sophomorixRole='teacher'"
+    ldapUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher))"
+    ldapMailingListFilter = "(|(sophomorixType=adminclass)(sophomorixType=project))"
+    ldapMailingListMemberFilter = f"(&(memberof:1.2.840.113556.1.4.1941:=@@mailingListDn@@){ldapUserFilter})"
     domainQuota = 20000
 
     def __init__(self):
         self._config = self._readConfig()
-
-        templateHelper.applyAllTemplates(self._config)
 
         self._mailcow = MailcowHelper(
             self._config['API_HOST'],
@@ -30,6 +30,10 @@ class LinuxmusterMailcowSyncer:
             self._config['LDAP_BASE_DN']
             )
 
+        self._dockerapi = DockerapiHelper(self._config["DOCKERAPI_HOST"])
+
+        templateHelper.applyAllTemplates(self._config, self._dockerapi)
+
     def sync(self):
         while (True):
             self._sync()
@@ -40,7 +44,7 @@ class LinuxmusterMailcowSyncer:
     def _sync(self):
 
         ret, adUsers = self._ldap.search(
-            self.mailboxUserFilter,
+            self.ldapUserFilter,
             ["mail", "proxyAddresses", "sophomorixStatus", "sophomorixMailQuotaCalculated", "displayName"]
         )
 
@@ -49,7 +53,7 @@ class LinuxmusterMailcowSyncer:
             return False
 
         ret, adLists = self._ldap.search(
-            self.mailingListFilter,
+            self.ldapMailingListFilter,
             ["mail", "distinguishedName", "sophomorixMailList"]
         )
 
@@ -107,7 +111,7 @@ class LinuxmusterMailcowSyncer:
             mail = mailingList["mail"]
             maildomain = mail.split("@")[-1]
             ret, members = self._ldap.search(
-                self.mailingListMemberFilter.replace("@@mailingListDn@@", mailingList["distinguishedName"]),
+                self.ldapMailingListMemberFilter.replace("@@mailingListDn@@", mailingList["distinguishedName"]),
                 ["mail"]
             )
             if not ret:
@@ -186,33 +190,38 @@ class LinuxmusterMailcowSyncer:
         pass
 
     def _readConfig(self):
-        required_config_keys = [
-            'LDAP_MAILCOW_LDAP_URI', 
-            'LDAP_MAILCOW_LDAP_BASE_DN',
-            'LDAP_MAILCOW_LDAP_BIND_DN', 
-            'LDAP_MAILCOW_LDAP_BIND_DN_PASSWORD',
-            'LDAP_MAILCOW_API_HOST', 
-            'LDAP_MAILCOW_API_KEY', 
-            'LDAP_MAILCOW_SYNC_INTERVAL'
+        requiredConfigKeys = [
+            'LINUXMUSTER_MAILCOW_LDAP_URI', 
+            'LINUXMUSTER_MAILCOW_LDAP_BASE_DN',
+            'LINUXMUSTER_MAILCOW_LDAP_BIND_DN', 
+            'LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD',
+            'LINUXMUSTER_MAILCOW_API_HOST', 
+            'LINUXMUSTER_MAILCOW_API_KEY', 
+            'LINUXMUSTER_MAILCOW_SYNC_INTERVAL'
         ]
 
-        config = {}
+        allowedConfigKeys = [
+            "LINUXMUSTER_MAILCOW_DOCKERAPI_HOST",
+            "LINUXMUSTER_MAILCOW_API_HOST"
+        ]
 
-        for config_key in required_config_keys:
-            if config_key not in os.environ:
-                sys.exit (f"Required environment value {config_key} is not set")
+        config = {
+            "LDAP_SOGO_USER_FILTER": self.ldapSogoUserFilter,
+            "LDAP_USER_FILTER": self.ldapUserFilter,
+            "DOCKERAPI_HOST": "https://dockerapi-mailcow",
+            "API_HOST": "https://nginx-mailcow"
+        }
 
-            config[config_key.replace('LDAP_MAILCOW_', '')] = os.environ[config_key]
+        for configKey in requiredConfigKeys:
+            if configKey not in os.environ:
+                sys.exit (f"Required environment value {configKey} is not set")
+            config[configKey.replace('LINUXMUSTER_MAILCOW_', '')] = os.environ[configKey]
 
-        if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_SOGO_LDAP_FILTER' not in os.environ:
-            sys.exit('LDAP_MAILCOW_SOGO_LDAP_FILTER is required when you specify LDAP_MAILCOW_LDAP_FILTER')
+        for configKey in allowedConfigKeys:
+            if configKey in os.environ:
+                config[configKey.replace('LINUXMUSTER_MAILCOW_', '')] = os.environ[configKey]
 
-        if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ and 'LDAP_MAILCOW_LDAP_FILTER' not in os.environ:
-            sys.exit('LDAP_MAILCOW_LDAP_FILTER is required when you specify LDAP_MAILCOW_SOGO_LDAP_FILTER')
-
-        config['LDAP_FILTER'] = os.environ['LDAP_MAILCOW_LDAP_FILTER'] if 'LDAP_MAILCOW_LDAP_FILTER' in os.environ else '(&(objectClass=user)(objectCategory=person))'
-        config['SOGO_LDAP_FILTER'] = os.environ['LDAP_MAILCOW_SOGO_LDAP_FILTER'] if 'LDAP_MAILCOW_SOGO_LDAP_FILTER' in os.environ else "objectClass='user' AND objectCategory='person'"
-
+        print(config)
         return config
 
 if __name__ == '__main__':
