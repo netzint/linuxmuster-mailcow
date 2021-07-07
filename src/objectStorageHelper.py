@@ -97,7 +97,7 @@ class TemporaryObjectListStorage:
 
 class DomainListStorage(TemporaryObjectListStorage):
     primaryKey = "domain_name"
-    validityCheckDescription = "#### managed by linuxmuster.net ####"
+    validityCheckDescription = "#### managed by linuxmuster ####"
 
     def killQueue(self):
         return list(map(lambda x: x["domain_name"], super().killQueue()))

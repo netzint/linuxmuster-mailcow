@@ -57,6 +57,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
 
 4. Start additional container: `docker-compose up -d linuxmuster-mailcow`
 5. Check logs `docker-compose logs linuxmuster-mailcow`
+6. For projects and classes, make sure to call `sophomorix-class -c test --maillist` / `sophomorix-project -p test --maillist`. Otherwise no maillist will be created!
 
 ## Limitations
 

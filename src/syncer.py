@@ -104,7 +104,6 @@ class LinuxmusterMailcowSyncer:
                     self._addAlias(alias, mail, mailcowAliases)
 
         for mailingList in adLists:
-            
             if not mailingList["sophomorixMailList"] == "TRUE":
                 continue
             
@@ -114,9 +113,10 @@ class LinuxmusterMailcowSyncer:
                 self.ldapMailingListMemberFilter.replace("@@mailingListDn@@", mailingList["distinguishedName"]),
                 ["mail"]
             )
+            
             if not ret:
                 continue
-            
+
             if not self._addDomain(maildomain, mailcowDomains):
                 continue
 
