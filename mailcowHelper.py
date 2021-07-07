@@ -6,19 +6,6 @@ class MailcowHelper:
         self._host = host
         self._apiKey = apiKey
 
-    def add_user(self, email, name, active):
-        password = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
-        json_data = {
-            'local_part':email.split('@')[0],
-            'domain':email.split('@')[1],
-            'name':name,
-            'password':password,
-            'password2':password,
-            "active": 1 if active else 0
-        }
-
-        self._post_request('api/v1/add/mailbox', json_data)
-
     def edit_user(self, email, active=None, name=None):
         attr = {}
         if (active is not None):
@@ -33,20 +20,28 @@ class MailcowHelper:
 
         self._post_request('api/v1/edit/mailbox', json_data)
 
-    def check_user(self, email):
-        rsp = self._getRequest(f"/api/v1/get/mailbox/{email}")
 
-        if (not rsp):
-            return (False, False, None)
+    def addElementsOfType(self, type, elements):
+        for element in elements:
+            self._post_request(f"api/v1/add/{type}", element)
 
-        if 'active_int' not in rsp and rsp['type'] == 'error':
-            sys.exit(f"API: {rsp['type']} - {rsp['msg']}")
-        
-        return (True, bool(rsp['active_int']), rsp['name'])
+    def killElementsOfType(self, type, elements):
+        self._post_request(f"api/v1/delete/{type}", elements)
+
+    def editElementsOfType(self, type, elements):
+        for element in elements:
+            self._post_request(f"api/v1/edit/{type}", element)
+
+    def getAllEntriesOfType(self, type):
+        rsp = self._getRequest(f"api/v1/get/{type}/all")
+
+        return True, rsp
 
     def _post_request(self, url, json_data):
         api_url = f"{self._host}/{url}"
         headers = {'X-API-Key': self._apiKey, 'Content-type': 'application/json'}
+
+        print("Sending POST with JSON: ", json_data)
 
         req = requests.post(api_url, headers=headers, json=json_data)
         rsp = req.json()
@@ -69,7 +64,7 @@ class MailcowHelper:
         rsp = req.json()
         req.close()
         
-        if not isinstance(rsp, dict) or isinstance(rsp, list):
+        if not (isinstance(rsp, dict) or isinstance(rsp, list)):
             sys.exit(f"API {url}: got response of a wrong type")
 
         return rsp

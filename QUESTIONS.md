@@ -1,0 +1,3 @@
+- Wofür sind --mailalias und --maillist -> Schalter in die WebUI?
+- Hooks für Änderung an Projekten?
+- Hooks für Anderung an Mailquota?

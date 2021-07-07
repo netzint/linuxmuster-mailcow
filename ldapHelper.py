@@ -28,7 +28,6 @@ class LdapHelper:
             processedResults =  []
 
             if len(rawResults) <= 0 or rawResults[0][0] == None:
-                print("Search \"{}\" did not return any objects".format(filter))
                 return False, None
 
             for dn, rawResult in rawResults:

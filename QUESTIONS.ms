@@ -1,5 +1,0 @@
-- Maildomain von Klassen und Projekten setzen und updaten?
-- Wofür sind --mailalias und --maillist -> Schalter in die WebUI?
-- Was tut sophomorix-mail?
-- Hooks für Änderung an Projekten?
-- Setzen von Mailaliasen?
