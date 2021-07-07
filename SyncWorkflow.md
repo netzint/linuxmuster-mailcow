@@ -1,5 +1,5 @@
-# How the sync will work
-- Script talks to AD via ldap and to Mailcow via http
+# How the sync works
+- Script talks to AD via ldap and to Mailcow via https
 
 ## Syncing Workflow
 - Use one query to get all users of all schools -> ad.users
@@ -82,6 +82,7 @@
 
 - Sync to mailcow
  - Add all domains from mailcow.domains.add
+ - Update all domains from mailcow.domains.update
  - Delete all mailboxes from mailcow.users.kill
  - Add all mailboxes from mailcow.users.add
  - Update all mailboxes from mailcow.users.update

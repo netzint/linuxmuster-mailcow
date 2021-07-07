@@ -20,7 +20,7 @@ class LinuxmusterMailcowSyncer:
         self._config = self._readConfig()
 
         self._mailcow = MailcowHelper(
-            self._config['API_HOST'],
+            self._config['API_URI'],
             self._config['API_KEY']
             )
         self._ldap = LdapHelper(
@@ -30,7 +30,7 @@ class LinuxmusterMailcowSyncer:
             self._config['LDAP_BASE_DN']
             )
 
-        self._dockerapi = DockerapiHelper(self._config["DOCKERAPI_HOST"])
+        self._dockerapi = DockerapiHelper(self._config["DOCKERAPI_URI"])
 
         templateHelper.applyAllTemplates(self._config, self._dockerapi)
 
@@ -195,21 +195,21 @@ class LinuxmusterMailcowSyncer:
             'LINUXMUSTER_MAILCOW_LDAP_BASE_DN',
             'LINUXMUSTER_MAILCOW_LDAP_BIND_DN', 
             'LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD',
-            'LINUXMUSTER_MAILCOW_API_HOST', 
+            'LINUXMUSTER_MAILCOW_API_URI', 
             'LINUXMUSTER_MAILCOW_API_KEY', 
             'LINUXMUSTER_MAILCOW_SYNC_INTERVAL'
         ]
 
         allowedConfigKeys = [
-            "LINUXMUSTER_MAILCOW_DOCKERAPI_HOST",
-            "LINUXMUSTER_MAILCOW_API_HOST"
+            "LINUXMUSTER_MAILCOW_DOCKERAPI_URI",
+            "LINUXMUSTER_MAILCOW_API_URI"
         ]
 
         config = {
             "LDAP_SOGO_USER_FILTER": self.ldapSogoUserFilter,
             "LDAP_USER_FILTER": self.ldapUserFilter,
-            "DOCKERAPI_HOST": "https://dockerapi-mailcow",
-            "API_HOST": "https://nginx-mailcow"
+            "DOCKERAPI_URI": "https://dockerapi-mailcow",
+            "API_URI": "https://nginx-mailcow"
         }
 
         for configKey in requiredConfigKeys:
