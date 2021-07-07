@@ -9,4 +9,4 @@ export LINUXMUSTER_MAILCOW_API_KEY=SomeApiKey
 export LINUXMUSTER_MAILCOW_SYNC_INTERVAL=300
 export LINUXMUSTER_MAILCOW_DOCKERAPI_URI="https://10.9.0.2:1234"
 
-python3 syncer.py
+python3 src/syncer.py

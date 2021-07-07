@@ -127,15 +127,15 @@ class LinuxmusterMailcowSyncer:
 
             self._addAlias(mail, mailcowGotoString, mailcowAliases)
 
-        print("mailboxesKill: ", mailcowMailboxes.killQueue())
-        print("mailboxesAdd: ", mailcowMailboxes.addQueue())
-        print("mailboxesUpdate: ", mailcowMailboxes.updateQueue())
-        print("domainsAdd: ", mailcowDomains.addQueue())
-        print("domainsKill: ", mailcowDomains.killQueue())
-        print("domainsUpdate: ", mailcowDomains.updateQueue())
-        print("aliasesAdd: ", mailcowAliases.addQueue())
-        print("aliasesUpdate: ", mailcowAliases.updateQueue())
-        print("aliasesKill: ", mailcowAliases.killQueue())
+        #print("mailboxesKill: ", mailcowMailboxes.killQueue())
+        #print("mailboxesAdd: ", mailcowMailboxes.addQueue())
+        #print("mailboxesUpdate: ", mailcowMailboxes.updateQueue())
+        #print("domainsAdd: ", mailcowDomains.addQueue())
+        #print("domainsKill: ", mailcowDomains.killQueue())
+        #print("domainsUpdate: ", mailcowDomains.updateQueue())
+        #print("aliasesAdd: ", mailcowAliases.addQueue())
+        #print("aliasesUpdate: ", mailcowAliases.updateQueue())
+        #print("aliasesKill: ", mailcowAliases.killQueue())
 
         self._mailcow.addElementsOfType("domain", mailcowDomains.addQueue())
         self._mailcow.editElementsOfType("domain", mailcowDomains.updateQueue())
@@ -221,7 +221,11 @@ class LinuxmusterMailcowSyncer:
             if configKey in os.environ:
                 config[configKey.replace('LINUXMUSTER_MAILCOW_', '')] = os.environ[configKey]
 
-        print(config)
+        logging.info("CONFIG:")
+        for key, value in config.items():
+            logging.info("\t* {:25}: {}".format(key, value))
+        print()
+
         return config
 
 if __name__ == '__main__':

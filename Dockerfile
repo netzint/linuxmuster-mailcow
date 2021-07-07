@@ -4,7 +4,7 @@ RUN apk --no-cache add build-base openldap-dev python2-dev python3-dev
 RUN pip3 install python-ldap sqlalchemy requests
 
 COPY templates ./templates
-COPY *.py ./
+COPY src/* ./
 
 VOLUME [ "/conf/dovecot" ]
 VOLUME [ "/conf/sogo" ]
