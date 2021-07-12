@@ -10,7 +10,8 @@ Integration of Mailcow for Linuxmuster.net
 
 ## How does it work
 
-A python script periodically syncs all linuxmuster accounts to mailcow. It also automatically creates aliases for user proxyAddress, projects and classes.  
+A python script periodically syncs all linuxmuster accounts to mailcow. It also automatically creates aliases for user proxyAddress. 
+For projects and classes, it also creates a mailbox. These mailboxes have a quota of 1mb and get a filter which redirects all mails to their members. 
 Sogo and dovecot are configured automatically to authenticate against LDAP.  
 More details about the sync workflow can be found in SyncWorkflow.md
 
