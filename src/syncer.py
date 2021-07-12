@@ -14,7 +14,6 @@ class LinuxmusterMailcowSyncer:
     ldapUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher))"
     ldapMailingListFilter = "(|(sophomorixType=adminclass)(sophomorixType=project))"
     ldapMailingListMemberFilter = f"(&(memberof:1.2.840.113556.1.4.1941:=@@mailingListDn@@){ldapUserFilter})"
-    domainQuota = 20000
 
     def __init__(self):
         self._config = self._readConfig()
@@ -155,8 +154,8 @@ class LinuxmusterMailcowSyncer:
         return mailcowDomains.addElement({
             "domain": domainName,
             "defquota": 2,
-            "maxquota": self.domainQuota, 
-            "quota": self.domainQuota,
+            "maxquota": self._config['DOMAIN_QUOTA'], 
+            "quota": self._config['DOMAIN_QUOTA'],
             "description": DomainListStorage.validityCheckDescription,
             "active": 1,
             "restart_sogo": 1,
@@ -196,7 +195,8 @@ class LinuxmusterMailcowSyncer:
             'LINUXMUSTER_MAILCOW_LDAP_BIND_DN', 
             'LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD',
             'LINUXMUSTER_MAILCOW_API_KEY', 
-            'LINUXMUSTER_MAILCOW_SYNC_INTERVAL'
+            'LINUXMUSTER_MAILCOW_SYNC_INTERVAL',
+            'LINUXMUSTER_MAILCOW_DOMAIN_QUOTA'
         ]
 
         allowedConfigKeys = [

@@ -16,7 +16,8 @@ More details about the sync workflow can be found in SyncWorkflow.md
 
 ## Usage
 
-1. Create a file called `docker-compose.override.yml` in your mailcow directory with the following content:
+1. Create an API key with read/write permissions from the Mailcow UI
+2. Create a file called `docker-compose.override.yml` in your mailcow directory with the following content:
 
     ```yaml
     version: '2.1'
@@ -37,6 +38,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
                 - LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD=<YOUR-PASSWORD>
                 - LINUXMUSTER_MAILCOW_API_KEY=<YOUR-API-KEY>
                 - LINUXMUSTER_MAILCOW_SYNC_INTERVAL=300
+                - LINUXMUSTER_MAILCOW_DOMAIN_QUOTA=20000
             networks:
             mailcow-network:
                 aliases:
@@ -51,6 +53,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
     * `LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD` - password for bind DN account
     * `LINUXMUSTER_MAILCOW_API_KEY` - mailcow API key (read/write)
     * `LINUXMUSTER_MAILCOW_SYNC_INTERVAL` - interval in seconds between LDAP synchronizations
+    * `LINUXMUSTER_MAILCOW_DOMAIN_QUOTA` - total quota of one domain. CAUTION! If this is not enough to fit all mailboxes the import will fail!!
     * **Optional**  Only use these if you know what you are doing! They are not required for normal operation!
         * `LDAP-MAILCOW_API_URI` - mailcow API uri.
         ' `LINUXMUSTER_MAILCOW_DOCKERAPI_URI` - dockerapi API uri.
