@@ -28,6 +28,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
             depends_on:
                 - nginx-mailcow
                 - dockerapi-mailcow
+                - php-fpm-mailcow
             volumes:
                 - ./data/conf/dovecot:/conf/dovecot:rw
                 - ./data/conf/sogo:/conf/sogo:rw
@@ -39,6 +40,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
                 - LINUXMUSTER_MAILCOW_API_KEY=<YOUR-API-KEY>
                 - LINUXMUSTER_MAILCOW_SYNC_INTERVAL=300
                 - LINUXMUSTER_MAILCOW_DOMAIN_QUOTA=20000
+                - LINUXMUSTER_MAILCOW_ENABLE_GAL=1
             networks:
             mailcow-network:
                 aliases:
@@ -54,9 +56,10 @@ More details about the sync workflow can be found in SyncWorkflow.md
     * `LINUXMUSTER_MAILCOW_API_KEY` - mailcow API key (read/write)
     * `LINUXMUSTER_MAILCOW_SYNC_INTERVAL` - interval in seconds between LDAP synchronizations
     * `LINUXMUSTER_MAILCOW_DOMAIN_QUOTA` - total quota of one domain. CAUTION! If this is not enough to fit all mailboxes the import will fail!!
+    * `LINUXMUSTER_MAILCOW_ENABLE_GAL` - whether to enable the global addressbook
     * **Optional**  Only use these if you know what you are doing! They are not required for normal operation!
         * `LDAP-MAILCOW_API_URI` - mailcow API uri.
-        ' `LINUXMUSTER_MAILCOW_DOCKERAPI_URI` - dockerapi API uri.
+        * `LINUXMUSTER_MAILCOW_DOCKERAPI_URI` - dockerapi API uri.
 
 4. Start additional container: `docker-compose up -d linuxmuster-mailcow`
 5. Check logs `docker-compose logs linuxmuster-mailcow`

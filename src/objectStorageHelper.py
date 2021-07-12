@@ -22,7 +22,8 @@ class TemporaryObjectListStorage:
     def addElement(self, element, elementId):
         """
         This function safely adds an element:
-        - If it exists, it removes it from the kill queue
+        - If it exists and is unchanged, it removes it from the kill queue
+        - If it exists and has changed, it adds it to the update queue
         - If it is unmanaged, it retruns false
         - If it does not exist, it adds it to the add queue
         """
@@ -171,3 +172,27 @@ class AliasListStorage(TemporaryObjectListStorage):
 
     def _checkElementValidity(self, element):
         return element["domain"] in self._domainListStorage._managed
+
+class FilterListStorage(TemporaryObjectListStorage):
+    primaryKey = "username"
+
+    def __init__(self, domainListStorage):
+        super().__init__()
+        self._domainListStorage = domainListStorage
+
+    def killQueue(self):
+        return list(map(lambda x: x["id"], super().killQueue()))
+
+    def updateQueue(self):
+        queue = []
+        for key, value in self._updateQueue.items():
+            filterId = self._managed[key]["id"]
+            queue.append({
+            "attr": value,
+            "items": [filterId]
+        })
+        return queue
+
+    def _checkElementValidity(self, element):
+        domain = element["username"].split("@")[-1]
+        return domain in self._domainListStorage._managed and element["filter_type"] == "prefilter" and element["active"] == 1

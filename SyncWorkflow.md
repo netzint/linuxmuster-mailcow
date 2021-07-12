@@ -4,14 +4,14 @@
 ## Syncing Workflow
 - Use one query to get all users of all schools -> ad.users
 ```
-(|(sophomorixRole=student)(sophomorixRole=teacher))
+(|(sophomorixRole=student)(sophomorixRole=teacher)(sophomorixRole=schooladministrator))
 ```
 
 - Use one query to get all projects and classes -> ad.lists
 ```
 (|(sophomorixType=adminclass)(sophomorixType=project))
 ```
-
+ 
 - Use one api request to get all active domains -> mailcow.domains.current
 ```
 /api/v1/get/domain/all
@@ -27,24 +27,29 @@
 /api/v1/get/alias/all
 ```
 
+- Use one api request to get all active filters -> mailcow.filters.current
+```
+/api/v1/get/filters/all
+```
+
 - Walk mailcow.domains.current and:
   - Check if description is "#### managed by linuxmuster.net ####"
-    - Yes: add to mailcow.domains.managed
-- Copy mailcow.domains.managed to mailcow.domains.kill
+    - Yes: add to mailcow.domains.managed and mailcow.domains.kill
 
 - Walk mailcow.mailboxes.current and:
   - Check if the mailbox domain is in mailcow.domains.managed
-    - Yes: add to mailcow.mailboxes.managed
-- Copy mailcow.mailboxes.managed to mailcow.mailboxes.kill
+    - Yes: add to mailcow.mailboxes.managed and mailcow.mailboxes.kill
 
 - Walk mailcow.aliases.current and:
   - Check if the alias domain is in mailcow.domains.managed
-    - Yes: add to mailcow.aliases.managed
-- Copy mailcow.aliases.managed to mailcow.aliases.kill
+    - Yes: add to mailcow.aliases.managed and mailcow.aliases.kill
 
+- Walk mailcow.filters.current and:
+  - Check if the filter domain is in mailcow.domains.managed
+    - Yes: add to mailcow.filters.managed and mailcow.filters.kill
 
 - Walk ad.users and:
-  - Check if maildomain is in mailcow.domains.managed
+  - Check if maildomain is in mailcow.domains.managed 
     - Yes: remove it from mailcow.domains.kill
     - No: Check if maildomain is in mailcow.domains.current
       - Yes: skip this user
@@ -67,7 +72,7 @@
   memberof:1.2.840.113556.1.4.1941:={List DN}
   ```
   - Check maildomain (same as for users)
-  - Check alias and addresses (same as for user aliases)
+  - Check mailbox (same as for users)
 
 - mailcow.domains.add now contains all new domains
 - mailcow.domains.kill now contains all deleted domains

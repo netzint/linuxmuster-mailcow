@@ -12,7 +12,8 @@ class MailcowHelper:
             self._post_request(f"api/v1/add/{type}", element)
 
     def killElementsOfType(self, type, elements):
-        self._post_request(f"api/v1/delete/{type}", elements)
+        if len(elements) > 0:
+            self._post_request(f"api/v1/delete/{type}", elements)
 
     def editElementsOfType(self, type, elements):
         for element in elements:
@@ -44,8 +45,10 @@ class MailcowHelper:
 
     def _getRequest(self, url):
         requestUrl = f"{self._host}/{url}"
-
         headers = {'X-API-Key': self._apiKey, 'Content-type': 'application/json'}
+
+        print("Sending GET to: ", requestUrl)
+
         req = requests.get(requestUrl, headers=headers, verify=False)
         rsp = req.json()
         req.close()

@@ -3,15 +3,15 @@ import templateHelper
 
 from mailcowHelper import MailcowHelper
 from ldapHelper import LdapHelper
-from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage
+from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage, FilterListStorage
 from dockerapiHelper import DockerapiHelper
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%d.%m.%y %H:%M:%S', level=logging.INFO)
 
 class LinuxmusterMailcowSyncer:
 
-    ldapSogoUserFilter = "sophomorixRole='student' OR sophomorixRole='teacher'"
-    ldapUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher))"
+    ldapSogoUserFilter = "sophomorixRole='student' OR sophomorixRole='teacher' OR sophomorixRole='schooladministrator'"
+    ldapUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher)(sophomorixRole=schooladministrator))"
     ldapMailingListFilter = "(|(sophomorixType=adminclass)(sophomorixType=project))"
     ldapMailingListMemberFilter = f"(&(memberof:1.2.840.113556.1.4.1941:=@@mailingListDn@@){ldapUserFilter})"
 
@@ -42,6 +42,12 @@ class LinuxmusterMailcowSyncer:
 
     def _sync(self):
 
+        #print(self._mailcow.getAllEntriesOfType("filters"))
+        #return
+        #self._mailcow.editElementsOfType("filter", [{"attr": {"active": 0}, "items": [2]}])
+        #self._mailcow.killElementsOfType("filter", [2])
+        #print(self._mailcow.addElementsOfType("filter", [{'active': 1, 'username': 'testsc@lmn-dev.itsblue.de', 'filter_type': 'prefilter', 'script_data': 'stop;', 'script_desc': 'TESTFILTER2'}]))
+        
         ret, adUsers = self._ldap.search(
             self.ldapUserFilter,
             ["mail", "proxyAddresses", "sophomorixStatus", "sophomorixMailQuotaCalculated", "displayName"]
@@ -53,7 +59,7 @@ class LinuxmusterMailcowSyncer:
 
         ret, adLists = self._ldap.search(
             self.ldapMailingListFilter,
-            ["mail", "distinguishedName", "sophomorixMailList"]
+            ["mail", "distinguishedName", "sophomorixMailList", "sAMAccountName"]
         )
 
         if not ret:
@@ -63,6 +69,7 @@ class LinuxmusterMailcowSyncer:
         mailcowDomains = DomainListStorage()
         mailcowMailboxes = MailboxListStorage(mailcowDomains)
         mailcowAliases = AliasListStorage(mailcowDomains)
+        mailcowFilters = FilterListStorage(mailcowDomains)
 
         ret, rawData = self._mailcow.getAllEntriesOfType("domain")
         if not ret:
@@ -81,6 +88,13 @@ class LinuxmusterMailcowSyncer:
             logging.error("Error getting aliases from Mailcow")
             return False
         mailcowAliases.loadRawData(rawData)
+
+        # It is actially "filters" (plural); nobody knows why
+        ret, rawData = self._mailcow.getAllEntriesOfType("filters")
+        if not ret:
+            logging.error("Error getting filters from Mailcow")
+            return False
+        mailcowFilters.loadRawData(rawData)
 
         for user in adUsers:
             mail = user["mail"]
@@ -119,12 +133,14 @@ class LinuxmusterMailcowSyncer:
             if not self._addDomain(maildomain, mailcowDomains):
                 continue
 
-            mailcowGotoString = ""
-            for member in members:
-                mailcowGotoString += f"{member['mail']},"
-            mailcowGotoString = mailcowGotoString[:-1]
+            self._addMailbox({
+                "mail": mail,
+                "sophomorixStatus": "U",
+                "sophomorixMailQuotaCalculated": 1,
+                "displayName": mailingList["sAMAccountName"] + " (list)"
+            }, mailcowMailboxes)
 
-            self._addAlias(mail, mailcowGotoString, mailcowAliases)
+            self._addListFilter(mail, list(map(lambda x: x["mail"], members)), mailcowFilters)
 
         #print("mailboxesKill: ", mailcowMailboxes.killQueue())
         #print("mailboxesAdd: ", mailcowMailboxes.addQueue())
@@ -136,18 +152,23 @@ class LinuxmusterMailcowSyncer:
         #print("aliasesUpdate: ", mailcowAliases.updateQueue())
         #print("aliasesKill: ", mailcowAliases.killQueue())
 
+        self._mailcow.killElementsOfType("filter", mailcowFilters.killQueue())
+        self._mailcow.killElementsOfType("alias", mailcowAliases.killQueue())
+        self._mailcow.killElementsOfType("mailbox", mailcowMailboxes.killQueue())
+        self._mailcow.killElementsOfType("domain", mailcowDomains.killQueue())
+
         self._mailcow.addElementsOfType("domain", mailcowDomains.addQueue())
         self._mailcow.editElementsOfType("domain", mailcowDomains.updateQueue())
 
         self._mailcow.addElementsOfType("mailbox", mailcowMailboxes.addQueue())
-        self._mailcow.killElementsOfType("mailbox", mailcowMailboxes.killQueue())
         self._mailcow.editElementsOfType("mailbox", mailcowMailboxes.updateQueue())
 
         self._mailcow.addElementsOfType("alias", mailcowAliases.addQueue())
-        self._mailcow.killElementsOfType("alias", mailcowAliases.killQueue())
         self._mailcow.editElementsOfType("alias", mailcowAliases.updateQueue())
 
-        self._mailcow.killElementsOfType("domain", mailcowDomains.killQueue())
+        self._mailcow.addElementsOfType("filter", mailcowFilters.addQueue())
+        self._mailcow.editElementsOfType("filter", mailcowFilters.updateQueue())
+
         return True
 
     def _addDomain(self, domainName, mailcowDomains):
@@ -160,7 +181,8 @@ class LinuxmusterMailcowSyncer:
             "active": 1,
             "restart_sogo": 1,
             "mailboxes": 10000,
-            "aliases": 10000
+            "aliases": 10000,
+            "gal": int(self._config['ENABLE_GAL'])
             }, domainName)
 
     def _addMailbox(self, user, mailcowMailboxes):
@@ -188,6 +210,20 @@ class LinuxmusterMailcowSyncer:
             }, alias)
         pass
 
+    def _addListFilter(self, listAddress, memberAddresses, mailcowFilters):
+        scriptData = "### Auto-generated mailinglist script by linuxmuster ###\r\n\r\n"
+        scriptData += "require \"copy\";\r\n\r\n"
+        for memberAddress in memberAddresses:
+            scriptData += f"redirect :copy \"{memberAddress}\";\r\n"
+        scriptData += "\r\ndiscard;stop;"
+        mailcowFilters.addElement({
+            'active': 1,
+            'username': listAddress,
+            'filter_type': 'prefilter',
+            'script_data': scriptData,
+            'script_desc': f"Auto-generated mailinglist script for {listAddress}"
+        }, listAddress)
+
     def _readConfig(self):
         requiredConfigKeys = [
             'LINUXMUSTER_MAILCOW_LDAP_URI', 
@@ -196,7 +232,8 @@ class LinuxmusterMailcowSyncer:
             'LINUXMUSTER_MAILCOW_LDAP_BIND_DN_PASSWORD',
             'LINUXMUSTER_MAILCOW_API_KEY', 
             'LINUXMUSTER_MAILCOW_SYNC_INTERVAL',
-            'LINUXMUSTER_MAILCOW_DOMAIN_QUOTA'
+            'LINUXMUSTER_MAILCOW_DOMAIN_QUOTA',
+            'LINUXMUSTER_MAILCOW_ENABLE_GAL'
         ]
 
         allowedConfigKeys = [

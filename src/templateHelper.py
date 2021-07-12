@@ -8,10 +8,10 @@ def applyAllTemplates(config, dockerapi=None):
         'sogo/plist_ldap'
     ]
 
-    configChanged = True
+    configChanged = False
     for file in files:
         thisConfigChanged = _applyTemplate(file, config)
-        configChanged = configChanged and thisConfigChanged
+        configChanged = configChanged or thisConfigChanged
 
     if configChanged and dockerapi:
         logging.info("One or more config files have been changed, restarting dovecot-mailcow and sogo-mailcow now!")
