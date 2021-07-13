@@ -1,15 +1,26 @@
-import ldap
+import ldap, logging
 
 class LdapHelper:
     def __init__(self, ldapUri, ldapBindDn, ldapBindPassword, ldapBaseDn):
-        self._ldapConnection = ldap.initialize(f"{ldapUri}")
-        self._ldapConnection.set_option(ldap.OPT_REFERRALS, 0)
-        self._ldapConnection.simple_bind_s(ldapBindDn, ldapBindPassword)
+        self._uri = ldapUri
+        self._bindDn = ldapBindDn
+        self._bindPassword = ldapBindPassword
         self._baseDn = ldapBaseDn
+
+    def bind(self):
+        logging.info("Trying to bind to ldap")
+        try:
+            self._ldapConnection = ldap.initialize(f"{self._uri}")
+            self._ldapConnection.set_option(ldap.OPT_REFERRALS, 0)
+            self._ldapConnection.simple_bind_s(self._bindDn, self._bindPassword)
+            return True
+        except Exception as e:
+            logging.critical("!!! Error binding to ldap! {} !!!".format(e))
+            return False
 
     def search(self, filter, attrlist=None):
         if self._ldapConnection == None:
-            print("Cannot talk to LDAP")
+            logging.critical("Cannot talk to LDAP")
             return False, None
 
         try:
@@ -20,7 +31,7 @@ class LdapHelper:
                     attrlist
                     )
         except Exception as e:
-            print("Error executing LDAP search!")
+            logging.critical("Error executing LDAP search!")
             print(e)
             return False, None
 

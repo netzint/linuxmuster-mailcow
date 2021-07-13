@@ -1,4 +1,4 @@
-import sys, os, string, time, datetime, logging, random
+import sys, os, string, time, datetime, logging, coloredlogs, random
 import templateHelper
 
 from mailcowHelper import MailcowHelper
@@ -6,7 +6,9 @@ from ldapHelper import LdapHelper
 from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage, FilterListStorage
 from dockerapiHelper import DockerapiHelper
 
-logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%d.%m.%y %H:%M:%S', level=logging.INFO)
+coloredlogs.install(level='INFO', fmt='%(asctime)s - [%(levelname)s] %(message)s')
+
+#logging.basicConfig(format='[%(asctime)s - %(levelname)s] %(message)s', datefmt='%H:%M:%S', level=logging.DEBUG)
 
 class LinuxmusterMailcowSyncer:
 
@@ -34,36 +36,41 @@ class LinuxmusterMailcowSyncer:
         templateHelper.applyAllTemplates(self._config, self._dockerapi)
 
     def sync(self):
+        interval = int(self._config['SYNC_INTERVAL'])
         while (True):
-            self._sync()
-            interval = int(self._config['SYNC_INTERVAL'])
-            logging.info(f"Sync finished, sleeping {interval} seconds before next cycle")
+            logging.info("=== Starting sync ===")
+            if not self._sync():
+                logging.critical("!!! The sync failed, see above errors !!!")
+            else:
+                logging.info("=== Sync finished successfully ==")
+            logging.info(f"sleeping {interval} seconds before next cycle")
             time.sleep(interval)
 
     def _sync(self):
 
-        #print(self._mailcow.getAllEntriesOfType("filters"))
-        #return
-        #self._mailcow.editElementsOfType("filter", [{"attr": {"active": 0}, "items": [2]}])
-        #self._mailcow.killElementsOfType("filter", [2])
-        #print(self._mailcow.addElementsOfType("filter", [{'active': 1, 'username': 'testsc@lmn-dev.itsblue.de', 'filter_type': 'prefilter', 'script_data': 'stop;', 'script_desc': 'TESTFILTER2'}]))
-        
+        if not self._ldap.bind():
+            return False
+
+        logging.info("Step 1: Loading current Data from AD")
+
+        logging.info("    * Loading users from AD")
         ret, adUsers = self._ldap.search(
             self.ldapUserFilter,
             ["mail", "proxyAddresses", "sophomorixStatus", "sophomorixMailQuotaCalculated", "displayName"]
         )
 
         if not ret:
-            logging.error("Error getting users from AD")
+            logging.critical("!!! Error getting users from AD !!!")
             return False
 
+        logging.info("    * Loading groups from AD")
         ret, adLists = self._ldap.search(
             self.ldapMailingListFilter,
             ["mail", "distinguishedName", "sophomorixMailList", "sAMAccountName"]
         )
 
         if not ret:
-            logging.error("Error getting lists from AD")
+            logging.critical("!!! Error getting lists from AD !!!")
             return False
 
         mailcowDomains = DomainListStorage()
@@ -71,30 +78,37 @@ class LinuxmusterMailcowSyncer:
         mailcowAliases = AliasListStorage(mailcowDomains)
         mailcowFilters = FilterListStorage(mailcowDomains)
 
+        logging.info("Step 2: Loading current Data from Mailcow")
+        logging.info("    * Loading current domains from Mailcow")
         ret, rawData = self._mailcow.getAllEntriesOfType("domain")
         if not ret:
-            logging.error("Error getting domains from Mailcow")
+            logging.critical("!!! Error getting domains from Mailcow !!!")
             return False
         mailcowDomains.loadRawData(rawData)
 
+        logging.info("    * Loading current mailboxes from Mailcow")
         ret, rawData = self._mailcow.getAllEntriesOfType("mailbox")
         if not ret:
-            logging.error("Error getting mailboxes from Mailcow")
+            logging.critical("!!! Error getting mailboxes from Mailcow !!!")
             return False
         mailcowMailboxes.loadRawData(rawData)
 
+        logging.info("    * Loading current aliases from Mailcow")
         ret, rawData = self._mailcow.getAllEntriesOfType("alias")
         if not ret:
-            logging.error("Error getting aliases from Mailcow")
+            logging.critical("!!! Error getting aliases from Mailcow !!!")
             return False
         mailcowAliases.loadRawData(rawData)
 
         # It is actially "filters" (plural); nobody knows why
+        logging.info("    * Loading current filters from Mailcow")
         ret, rawData = self._mailcow.getAllEntriesOfType("filters")
         if not ret:
-            logging.error("Error getting filters from Mailcow")
+            logging.critical("!!! Error getting filters from Mailcow !!!")
             return False
         mailcowFilters.loadRawData(rawData)
+
+        logging.info("Step 3: Calculating deltas between AD and Mailcow")
 
         for user in adUsers:
             mail = user["mail"]
@@ -142,32 +156,37 @@ class LinuxmusterMailcowSyncer:
 
             self._addListFilter(mail, list(map(lambda x: x["mail"], members)), mailcowFilters)
 
-        #print("mailboxesKill: ", mailcowMailboxes.killQueue())
-        #print("mailboxesAdd: ", mailcowMailboxes.addQueue())
-        #print("mailboxesUpdate: ", mailcowMailboxes.updateQueue())
-        #print("domainsAdd: ", mailcowDomains.addQueue())
-        #print("domainsKill: ", mailcowDomains.killQueue())
-        #print("domainsUpdate: ", mailcowDomains.updateQueue())
-        #print("aliasesAdd: ", mailcowAliases.addQueue())
-        #print("aliasesUpdate: ", mailcowAliases.updateQueue())
-        #print("aliasesKill: ", mailcowAliases.killQueue())
+        if mailcowDomains.queuesAreEmpty() and mailcowMailboxes.queuesAreEmpty() and mailcowAliases.queuesAreEmpty() and mailcowFilters.queuesAreEmpty():
+            logging.info("    * Everything up-to-date!")
+            return True
+        else:
+            logging.info("* Found deltas:")
+            logging.info(f"    * {mailcowDomains.getQueueCountsString('domains')}")
+            logging.info(f"    * {mailcowMailboxes.getQueueCountsString('mailboxes')}")
+            logging.info(f"    * {mailcowAliases.getQueueCountsString('aliases')}")
+            logging.info(f"    * {mailcowFilters.getQueueCountsString('filters')}")
 
-        self._mailcow.killElementsOfType("filter", mailcowFilters.killQueue())
-        self._mailcow.killElementsOfType("alias", mailcowAliases.killQueue())
-        self._mailcow.killElementsOfType("mailbox", mailcowMailboxes.killQueue())
-        self._mailcow.killElementsOfType("domain", mailcowDomains.killQueue())
+        logging.info("Step 4: Syncing deltas to Mailcow")
+        
+        try:
+            self._mailcow.killElementsOfType("filter", mailcowFilters.killQueue())
+            self._mailcow.killElementsOfType("alias", mailcowAliases.killQueue())
+            self._mailcow.killElementsOfType("mailbox", mailcowMailboxes.killQueue())
+            self._mailcow.killElementsOfType("domain", mailcowDomains.killQueue())
 
-        self._mailcow.addElementsOfType("domain", mailcowDomains.addQueue())
-        self._mailcow.editElementsOfType("domain", mailcowDomains.updateQueue())
+            self._mailcow.addElementsOfType("domain", mailcowDomains.addQueue())
+            self._mailcow.updateElementsOfType("domain", mailcowDomains.updateQueue())
 
-        self._mailcow.addElementsOfType("mailbox", mailcowMailboxes.addQueue())
-        self._mailcow.editElementsOfType("mailbox", mailcowMailboxes.updateQueue())
+            self._mailcow.addElementsOfType("mailbox", mailcowMailboxes.addQueue())
+            self._mailcow.updateElementsOfType("mailbox", mailcowMailboxes.updateQueue())
 
-        self._mailcow.addElementsOfType("alias", mailcowAliases.addQueue())
-        self._mailcow.editElementsOfType("alias", mailcowAliases.updateQueue())
+            self._mailcow.addElementsOfType("alias", mailcowAliases.addQueue())
+            self._mailcow.updateElementsOfType("alias", mailcowAliases.updateQueue())
 
-        self._mailcow.addElementsOfType("filter", mailcowFilters.addQueue())
-        self._mailcow.editElementsOfType("filter", mailcowFilters.updateQueue())
+            self._mailcow.addElementsOfType("filter", mailcowFilters.addQueue())
+            self._mailcow.updateElementsOfType("filter", mailcowFilters.updateQueue())
+        except:
+            return False
 
         return True
 
@@ -211,7 +230,7 @@ class LinuxmusterMailcowSyncer:
         pass
 
     def _addListFilter(self, listAddress, memberAddresses, mailcowFilters):
-        scriptData = "### Auto-generated mailinglist script by linuxmuster ###\r\n\r\n"
+        scriptData = "### Auto-generated mailinglist filter by linuxmuster ###\r\n\r\n"
         scriptData += "require \"copy\";\r\n\r\n"
         for memberAddress in memberAddresses:
             scriptData += f"redirect :copy \"{memberAddress}\";\r\n"
@@ -221,7 +240,7 @@ class LinuxmusterMailcowSyncer:
             'username': listAddress,
             'filter_type': 'prefilter',
             'script_data': scriptData,
-            'script_desc': f"Auto-generated mailinglist script for {listAddress}"
+            'script_desc': f"Auto-generated mailinglist filter for {listAddress}"
         }, listAddress)
 
     def _readConfig(self):
@@ -260,10 +279,12 @@ class LinuxmusterMailcowSyncer:
         logging.info("CONFIG:")
         for key, value in config.items():
             logging.info("\t* {:25}: {}".format(key, value))
-        print()
 
         return config
 
 if __name__ == '__main__':
-    syncer = LinuxmusterMailcowSyncer()
-    syncer.sync()
+    try:
+        syncer = LinuxmusterMailcowSyncer()
+        syncer.sync()
+    except KeyboardInterrupt:
+        pass

@@ -65,6 +65,11 @@ class TemporaryObjectListStorage:
     def killQueue(self):
         return self.getQueueAsList(self._killQueue)
 
+    def queuesAreEmpty(self):
+        return len(self._killQueue) == 0 and len(self._addQueue) == 0 and len(self._updateQueue) == 0
+
+    def getQueueCountsString(self, descriptor):
+        return f"Going to add {len(self._addQueue)} {descriptor}, update {len(self._updateQueue)} {descriptor} and kill {len(self._killQueue)} {descriptor}"
 
     def _checkElementChanges(self, element, elementId):
         """
