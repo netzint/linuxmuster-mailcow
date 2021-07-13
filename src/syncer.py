@@ -12,7 +12,7 @@ coloredlogs.install(level='INFO', fmt='%(asctime)s - [%(levelname)s] %(message)s
 
 class LinuxmusterMailcowSyncer:
 
-    ldapSogoUserFilter = "sophomorixRole='student' OR sophomorixRole='teacher' OR sophomorixRole='schooladministrator'"
+    ldapSogoUserFilter = "(sophomorixRole='student' OR sophomorixRole='teacher' OR sophomorixRole='schooladministrator')"
     ldapUserFilter = "(|(sophomorixRole=student)(sophomorixRole=teacher)(sophomorixRole=schooladministrator))"
     ldapMailingListFilter = "(|(sophomorixType=adminclass)(sophomorixType=project))"
     ldapMailingListMemberFilter = f"(&(memberof:1.2.840.113556.1.4.1941:=@@mailingListDn@@){ldapUserFilter})"
@@ -48,10 +48,11 @@ class LinuxmusterMailcowSyncer:
 
     def _sync(self):
 
+        logging.info("Step 1: Loading current Data from AD")
+
+        logging.info("    * Binding to ldap")
         if not self._ldap.bind():
             return False
-
-        logging.info("Step 1: Loading current Data from AD")
 
         logging.info("    * Loading users from AD")
         ret, adUsers = self._ldap.search(
@@ -175,6 +176,7 @@ class LinuxmusterMailcowSyncer:
         except MailcowException:
             return False
 
+        self._ldap.unbind()
         return True
 
     def _addDomain(self, domainName, mailcowDomains):

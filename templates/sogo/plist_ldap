@@ -33,7 +33,7 @@
     <string>YES</string>
 
     <key>filter</key>
-    <string>@@ldapSogoUserFilter@@</string>
+    <string>(@@ldapSogoUserFilter@@ AND mail='*@${line}' )</string>
 
     <key>isAddressBook</key>
     <string>NO</string>

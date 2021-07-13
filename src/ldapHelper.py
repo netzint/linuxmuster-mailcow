@@ -8,7 +8,6 @@ class LdapHelper:
         self._baseDn = ldapBaseDn
 
     def bind(self):
-        logging.info("Trying to bind to ldap")
         try:
             self._ldapConnection = ldap.initialize(f"{self._uri}")
             self._ldapConnection.set_option(ldap.OPT_REFERRALS, 0)
@@ -17,6 +16,11 @@ class LdapHelper:
         except Exception as e:
             logging.critical("!!! Error binding to ldap! {} !!!".format(e))
             return False
+
+    def unbind(self):
+        if self._ldapConnection != None:
+            self._ldapConnection.unbind_s()
+            self._ldapConnection = None
 
     def search(self, filter, attrlist=None):
         if self._ldapConnection == None:

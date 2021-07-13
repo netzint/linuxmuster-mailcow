@@ -43,9 +43,9 @@ More details about the sync workflow can be found in SyncWorkflow.md
                 - LINUXMUSTER_MAILCOW_DOMAIN_QUOTA=20000
                 - LINUXMUSTER_MAILCOW_ENABLE_GAL=1
             networks:
-            mailcow-network:
-                aliases:
-                - linuxmuster
+                mailcow-network:
+                    aliases:
+                        - linuxmuster
     ```
 
 3. Configure environmental variables:
@@ -63,7 +63,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
         * `LINUXMUSTER_MAILCOW_DOCKERAPI_URI` - dockerapi API uri.
 
 4. Start additional container: `docker-compose up -d linuxmuster-mailcow`
-5. Check logs `docker-compose logs linuxmuster-mailcow`
+5. Check logs `docker-compose logs -f linuxmuster-mailcow` (quit with ctrl+c)
 6. For projects and classes, make sure to call `sophomorix-class -c test --maillist` / `sophomorix-project -p test --maillist`. Otherwise no maillist will be created!
 
 ## Limitations
