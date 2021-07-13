@@ -1,6 +1,9 @@
 import random, string, sys, logging
 import requests, urllib3
 
+class MailcowException(Exception):
+    pass
+
 class MailcowHelper:
     def __init__(self, host, apiKey):
         self._host = host
@@ -36,19 +39,15 @@ class MailcowHelper:
             if not res:
                 logging.critical(f"!!! Error while {actionString} {elementType}: {elements[i]}")
                 logging.critical(f"!!! Error message from server: \"{self._getErrorMessage(errorMessage)}\"!!!")
-                raise Exception(errorMessage)
+                raise MailcowException(errorMessage)
 
-    def _getErrorMessage(self, error):
-        commonErrors = {
-            "mailbox_quota_left_exceeded": "The quota of the domain was exeeded, please choose a higher value for LINUXMUSTER_MAILCOW_DOMAIN_QUOTA"
-        }
-        if error[0] in commonErrors:
-            return commonErrors[error[0]]
-        else:
-            return error
-
-    def getAllEntriesOfType(self, type):
-        return self._getRequest(f"api/v1/get/{type}/all")
+    def getAllElementsOfType(self, elementType):
+        logging.info(f"    * Loading current {elementType}s from Mailcow")
+        res, data = self._getRequest(f"api/v1/get/{elementType}/all")
+        if res != 200:
+            logging.critical(f"!!! Error getting {elementType}s from Mailcow: {data} !!!")
+            raise MailcowException(res)
+        return data
 
     def _postRequest(self, url, json_data):
         api_url = f"{self._host}/{url}"
@@ -63,13 +62,13 @@ class MailcowHelper:
         if isinstance(rsp, list):
             rsp = rsp[0]
 
-        if not "type" in rsp or not "msg" in rsp:
+        if "type" in rsp and "msg" in rsp:
+            if rsp['type'] != 'success':
+                return False, rsp['msg']
+            else:
+                return True, None
+        else:
             return False, f"Got malformed response! Is {self._host} a mailcow server?"
-        
-        if rsp['type'] != 'success':
-            return False, rsp['msg']
-
-        return True, None
 
     def _getRequest(self, url):
         requestUrl = f"{self._host}/{url}"
@@ -80,8 +79,21 @@ class MailcowHelper:
         req = requests.get(requestUrl, headers=headers, verify=False)
         rsp = req.json()
         req.close()
-        
-        if req.status_code != 200:
-            return False, None
 
-        return True, rsp
+        if req.status_code != 200:
+            if "type" in rsp and "msg" in rsp:
+                return req.status_code, rsp["msg"]
+            else:
+                return req.status_code, f"Got malformed response! Is {self._host} a mailcow server?"
+
+        return req.status_code, rsp
+
+
+    def _getErrorMessage(self, error):
+        commonErrors = {
+            "mailbox_quota_left_exceeded": "The quota of the domain was exeeded, please choose a higher value for LINUXMUSTER_MAILCOW_DOMAIN_QUOTA"
+        }
+        if error[0] in commonErrors:
+            return commonErrors[error[0]]
+        else:
+            return error

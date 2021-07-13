@@ -1,7 +1,7 @@
 import sys, os, string, time, datetime, logging, coloredlogs, random
 import templateHelper
 
-from mailcowHelper import MailcowHelper
+from mailcowHelper import MailcowHelper, MailcowException
 from ldapHelper import LdapHelper
 from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage, FilterListStorage
 from dockerapiHelper import DockerapiHelper
@@ -79,34 +79,21 @@ class LinuxmusterMailcowSyncer:
         mailcowFilters = FilterListStorage(mailcowDomains)
 
         logging.info("Step 2: Loading current Data from Mailcow")
-        logging.info("    * Loading current domains from Mailcow")
-        ret, rawData = self._mailcow.getAllEntriesOfType("domain")
-        if not ret:
-            logging.critical("!!! Error getting domains from Mailcow !!!")
-            return False
-        mailcowDomains.loadRawData(rawData)
+        try:
+            rawData = self._mailcow.getAllElementsOfType("domain")
+            mailcowDomains.loadRawData(rawData)
 
-        logging.info("    * Loading current mailboxes from Mailcow")
-        ret, rawData = self._mailcow.getAllEntriesOfType("mailbox")
-        if not ret:
-            logging.critical("!!! Error getting mailboxes from Mailcow !!!")
-            return False
-        mailcowMailboxes.loadRawData(rawData)
+            rawData = self._mailcow.getAllElementsOfType("mailbox")
+            mailcowMailboxes.loadRawData(rawData)
 
-        logging.info("    * Loading current aliases from Mailcow")
-        ret, rawData = self._mailcow.getAllEntriesOfType("alias")
-        if not ret:
-            logging.critical("!!! Error getting aliases from Mailcow !!!")
-            return False
-        mailcowAliases.loadRawData(rawData)
+            rawData = self._mailcow.getAllElementsOfType("alias")
+            mailcowAliases.loadRawData(rawData)
 
-        # It is actially "filters" (plural); nobody knows why
-        logging.info("    * Loading current filters from Mailcow")
-        ret, rawData = self._mailcow.getAllEntriesOfType("filters")
-        if not ret:
-            logging.critical("!!! Error getting filters from Mailcow !!!")
+            # It is actially "filters" (plural); nobody knows why
+            rawData = self._mailcow.getAllElementsOfType("filters")
+            mailcowFilters.loadRawData(rawData)
+        except MailcowException:
             return False
-        mailcowFilters.loadRawData(rawData)
 
         logging.info("Step 3: Calculating deltas between AD and Mailcow")
 
@@ -185,7 +172,7 @@ class LinuxmusterMailcowSyncer:
 
             self._mailcow.addElementsOfType("filter", mailcowFilters.addQueue())
             self._mailcow.updateElementsOfType("filter", mailcowFilters.updateQueue())
-        except:
+        except MailcowException:
             return False
 
         return True
@@ -193,7 +180,7 @@ class LinuxmusterMailcowSyncer:
     def _addDomain(self, domainName, mailcowDomains):
         return mailcowDomains.addElement({
             "domain": domainName,
-            "defquota": 2,
+            "defquota": 1,
             "maxquota": self._config['DOMAIN_QUOTA'], 
             "quota": self._config['DOMAIN_QUOTA'],
             "description": DomainListStorage.validityCheckDescription,
