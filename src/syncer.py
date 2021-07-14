@@ -36,13 +36,15 @@ class LinuxmusterMailcowSyncer:
         templateHelper.applyAllTemplates(self._config, self._dockerapi)
 
     def sync(self):
-        interval = int(self._config['SYNC_INTERVAL'])
         while (True):
             logging.info("=== Starting sync ===")
             if not self._sync():
                 logging.critical("!!! The sync failed, see above errors !!!")
+                interval = 30
             else:
                 logging.info("=== Sync finished successfully ==")
+                interval = int(self._config['SYNC_INTERVAL'])
+            
             logging.info(f"sleeping {interval} seconds before next cycle")
             time.sleep(interval)
 
@@ -274,7 +276,7 @@ class LinuxmusterMailcowSyncer:
 
         logging.info("CONFIG:")
         for key, value in config.items():
-            logging.info("\t* {:25}: {}".format(key, value))
+            logging.info("    * {:25}: {}".format(key, value))
 
         return config
 
