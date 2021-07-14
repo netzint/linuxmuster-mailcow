@@ -18,6 +18,7 @@ def applyAllTemplates(config, dockerapi=None):
     if configChanged and dockerapi:
         logging.info("One or more config files have been changed, restarting dovecot-mailcow and sogo-mailcow now!")
         try:
+            dockerapi.waitForContainersToBeRunning(["sogo-mailcow", "dovecot-mailcow"])
             dockerapi.restartContainer("sogo-mailcow")
             dockerapi.restartContainer("dovecot-mailcow")
         except:

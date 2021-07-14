@@ -51,11 +51,11 @@ class DockerapiHelper:
         return None
 
     def restartContainer(self, containerName):
-        print(f"Restarting container {containerName} ... ", end='', flush=True)
+        logging.info(f"Restarting container {containerName} ... ")
         container = self.getContainerByName(containerName)
         
         if not container:
-            print("ERROR getting container details")
+            logging.error("ERROR getting container details")
             return False
 
         if container["State"]["Running"]:
@@ -63,17 +63,16 @@ class DockerapiHelper:
         elif container["State"]["Paused"] or container ["State"]["Dead"]:
             status, data = self._postRequest(f"{container['Id']}/start")
         elif container["State"]["Restarting"]:
-            print("already restarting.")
+            logging.info("already restarting.")
             return True
         else:
-            print("not restartable")
+            logging.error("not restartable")
             return False
 
         if status == 200:
-            print("OK")
             return True
         else:
-            print(f"ERROR: {status}")
+            logging.error(f"ERROR: {status}")
             return False
 
     def _postRequest(self, url):

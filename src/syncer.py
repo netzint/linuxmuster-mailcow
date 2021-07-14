@@ -31,7 +31,6 @@ class LinuxmusterMailcowSyncer:
             )
 
         self._dockerapi = DockerapiHelper(self._config["DOCKERAPI_URI"])
-        self._dockerapi.waitForContainersToBeRunning(["nginx-mailcow", "dockerapi-mailcow", "php-fpm-mailcow", "sogo-mailcow", "dovecot-mailcow"])
 
         templateHelper.applyAllTemplates(self._config, self._dockerapi)
 

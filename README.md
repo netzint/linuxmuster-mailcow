@@ -26,15 +26,15 @@ More details about the sync workflow can be found in SyncWorkflow.md
         linuxmuster-mailcow:
             image: linuxmuster/linuxmuster-mailcow
             container_name: mailcowcustomized_linuxmuster-mailcow
+            volumes:
+                - ./data/conf/dovecot:/conf/dovecot:rw
+                - ./data/conf/sogo:/conf/sogo:rw
             depends_on:
                 - nginx-mailcow
                 - dockerapi-mailcow
                 - php-fpm-mailcow
                 - sogo-mailcow
                 - dovecot-mailcow
-            volumes:
-                - ./data/conf/dovecot:/conf/dovecot:rw
-                - ./data/conf/sogo:/conf/sogo:rw
             environment:
                 - LINUXMUSTER_MAILCOW_LDAP_URI=ldap://10.0.0.1
                 - LINUXMUSTER_MAILCOW_LDAP_BASE_DN=DC=linuxmuster,DC=lan
@@ -65,7 +65,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
         * `LINUXMUSTER_MAILCOW_DOCKERAPI_URI` - dockerapi API uri.
 
 4. Start additional container: `docker-compose up -d linuxmuster-mailcow`
-5. Check logs `docker-compose logs -f linuxmuster-mailcow` (quit with ctrl+c)
+5. Check logs `docker-compose logs -f linuxmuster-mailcow` (quit with ctrl+c). Please note: Connection errors are normal after all containers are started with `docker-compose up -d`.
 6. For projects and classes, make sure to call `sophomorix-class -c test --maillist` / `sophomorix-project -p test --maillist`. Otherwise no maillist will be created!
 
 ## Limitations
