@@ -1,5 +1,7 @@
-from pathlib import Path
 import logging, os
+
+from pathlib import Path
+from requests.exceptions import ConnectionError
 
 def applyAllTemplates(config, dockerapi=None):
     files = [
@@ -15,8 +17,12 @@ def applyAllTemplates(config, dockerapi=None):
 
     if configChanged and dockerapi:
         logging.info("One or more config files have been changed, restarting dovecot-mailcow and sogo-mailcow now!")
-        dockerapi.restartContainer("sogo-mailcow")
-        dockerapi.restartContainer("dovecot-mailcow")
+        try:
+            dockerapi.restartContainer("sogo-mailcow")
+            dockerapi.restartContainer("dovecot-mailcow")
+        except:
+            print()
+            logging.warning("Could not restart containers because of an exception.")
     elif not dockerapi:
         logging.info("One or more config files have been changed, please make sure to restart dovecot-mailcow and sogo-mailcow!")
 

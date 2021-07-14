@@ -5,10 +5,9 @@ from mailcowHelper import MailcowHelper, MailcowException
 from ldapHelper import LdapHelper
 from objectStorageHelper import DomainListStorage, MailboxListStorage, AliasListStorage, FilterListStorage
 from dockerapiHelper import DockerapiHelper
+from requests.exceptions import ConnectionError
 
 coloredlogs.install(level='INFO', fmt='%(asctime)s - [%(levelname)s] %(message)s')
-
-#logging.basicConfig(format='[%(asctime)s - %(levelname)s] %(message)s', datefmt='%H:%M:%S', level=logging.DEBUG)
 
 class LinuxmusterMailcowSyncer:
 
@@ -32,6 +31,7 @@ class LinuxmusterMailcowSyncer:
             )
 
         self._dockerapi = DockerapiHelper(self._config["DOCKERAPI_URI"])
+        self._dockerapi.waitForContainersToBeRunning(["nginx-mailcow", "dockerapi-mailcow", "php-fpm-mailcow", "sogo-mailcow", "dovecot-mailcow"])
 
         templateHelper.applyAllTemplates(self._config, self._dockerapi)
 
@@ -94,6 +94,13 @@ class LinuxmusterMailcowSyncer:
             rawData = self._mailcow.getAllElementsOfType("filters")
             mailcowFilters.loadRawData(rawData)
         except MailcowException:
+            return False
+        except ConnectionError as e:
+            logging.error(e)
+            logging.critical("!!! A connection error occured, is mailcow still starting up? !!!")
+            return False
+        except Exception as e:
+            logging.exception("An exception occured: ", exc_info=e)
             return False
 
         logging.info("Step 3: Calculating deltas between AD and Mailcow")

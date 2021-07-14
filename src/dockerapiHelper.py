@@ -1,10 +1,31 @@
-import random, string, sys
-import requests, urllib3
+import random, string, sys, logging, requests, urllib3
 
 class DockerapiHelper:
     def __init__(self, host):
         self._host = host
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    def waitForContainersToBeRunning(self, containersToCkeck):
+        logging.info("Waiting for containers to be fully running:")
+        for container in containersToCkeck:
+            logging.info(f"    * {container}")
+        while True:
+            containers = self.getAllContainers()
+            containersChecked = 0
+            allContainersRunning = True
+            for id, container in containers.items():
+                try:
+                    thisContainerName = container["Config"]["Labels"]["com.docker.compose.service"]
+                except KeyError:
+                    continue
+                if thisContainerName in containersToCkeck:
+                    allContainersRunning = allContainersRunning and container["State"]["Running"]
+                    containersChecked += 1
+            
+            if containersChecked == len(containersToCkeck) and allContainersRunning:
+                break
+        
+        logging.info("All containers running")
 
     def getAllContainers(self):
         status, containers = self._getRequest("json")

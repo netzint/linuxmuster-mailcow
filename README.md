@@ -30,6 +30,8 @@ More details about the sync workflow can be found in SyncWorkflow.md
                 - nginx-mailcow
                 - dockerapi-mailcow
                 - php-fpm-mailcow
+                - sogo-mailcow
+                - dovecot-mailcow
             volumes:
                 - ./data/conf/dovecot:/conf/dovecot:rw
                 - ./data/conf/sogo:/conf/sogo:rw

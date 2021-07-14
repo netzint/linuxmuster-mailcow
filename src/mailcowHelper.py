@@ -56,7 +56,11 @@ class MailcowHelper:
         logging.debug(f"Sending POST with JSON: {json_data}")
 
         req = requests.post(api_url, headers=headers, json=json_data, verify=False)
-        rsp = req.json()
+        try:
+            rsp = req.json()
+        except:
+            rsp = "Could not decode response, is mailcow still starting up?"
+            return 900, rsp
         req.close()
 
         if isinstance(rsp, list):
@@ -77,7 +81,12 @@ class MailcowHelper:
         logging.debug(f"Sending GET to: {requestUrl}")
 
         req = requests.get(requestUrl, headers=headers, verify=False)
-        rsp = req.json()
+        try:
+            rsp = req.json()
+        except:
+            rsp = "Could not decode response, is mailcow still starting up?"
+            return 900, rsp
+            
         req.close()
 
         if req.status_code != 200:
