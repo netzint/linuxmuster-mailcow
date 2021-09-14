@@ -24,7 +24,7 @@ More details about the sync workflow can be found in SyncWorkflow.md
     version: '2.1'
     services:
         linuxmuster-mailcow:
-            image: linuxmuster/linuxmuster-mailcow
+            image: netzint/linuxmuster-mailcow
             container_name: mailcowcustomized_linuxmuster-mailcow
             volumes:
                 - ./data/conf/dovecot:/conf/dovecot:rw
