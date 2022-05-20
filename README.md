@@ -48,6 +48,12 @@ More details about the sync workflow can be found in SyncWorkflow.md
                 mailcow-network:
                     aliases:
                         - linuxmuster
+        sogo-mailcow:
+            volumes:
+                - ./data/conf/sogo/ldap.conf:/etc/ldap/ldap.conf:rw
+        dovecot-mailcow:
+            volumes:
+                - ./data/conf/sogo/ldap.conf:/etc/ldap/ldap.conf:rw
     ```
 
 3. Configure environmental variables:
