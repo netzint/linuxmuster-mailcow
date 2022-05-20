@@ -2,11 +2,24 @@
 
 Integration of Mailcow for Linuxmuster.net
 
+* [Maintainance Details](#maintainance-details)
 * [How does it work](#how-does-it-work)
 * [Usage](#usage)
 * [Limitations](#limitations)
   * [WebUI and EAS authentication](#webui-and-eas-authentication)
 * [Disclaimer](#disclaimer)
+
+## Maintainance Details
+
+Linuxmuster.net official | ❌ NO*
+:---: | :---: 
+[Community support](https://ask.linuxmuster.net) | ❌ No**
+Actively developed | ✅ YES
+Maintainer organisation |  Netzint GmbH  
+Primary maintainer | andreas.till@netzint.de  
+    
+\* The linuxmuster community consits of people who are nice and happy to help. They are not directly involved in the development though, and might not be able to help in all cases.
+** The linuxmuster community consits of people who are nice and happy to help. They are not directly involved in the development though, and might not be able to help in any case.
 
 ## How does it work
 
